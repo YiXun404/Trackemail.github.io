@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kwan Yi-He Mail Client - Episode 3 Scene 25</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* ================= 桌面端全局重置 ================= */
+    html, body {
+      background-color: #0b0d12;
+      height: 100vh;
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: 'Roboto', "Google Sans", -apple-system, Arial, sans-serif;
+      color: #e3e2e6;
+    }
+
+    * { box-sizing: border-box; }
+
+    /* 视图切替控制 */
+    .view-pane {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease;
+    }
+    .view-pane.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* 隐形 Refresh 触发点 */
+    .invisible-reset-trigger {
+      position: fixed; top: 0; right: 0; width: 30px; height: 30px; z-index: 9999; cursor: default; opacity: 0;
+    }
+
+    /* ================= 1. 真实 V-MAIL 电脑布局 ================= */
+    .vmail-app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      background-color: #111318;
+    }
+
+    /* 顶栏 (Top Header) */
+    .vmail-header {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background-color: #111318;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      width: 256px;
+    }
+
+    .menu-icon { width: 22px; height: 22px; fill: #c4c6d0; margin-right: 18px; cursor: pointer; }
+    .vmail-logo { font-size: 21px; font-weight: 500; color: #e3e2e6; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px;}
+    .vmail-logo-icon { width: 28px; height: 28px; fill: #4285f4; }
+
+    .header-middle {
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-bar {
+      background-color: #2b2d35;
+      border-radius: 24px;
+      height: 46px;
+      max-width: 720px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 18px;
+      color: #e3e2e6;
+    }
+    .search-bar svg { width: 18px; height: 18px; fill: #c4c6d0; margin-right: 14px; }
+    .search-bar input {
+      background: transparent; border: none; outline: none; color: #e3e2e6; font-size: 15px; width: 100%;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding-left: 20px;
+    }
+    .header-right svg { width: 22px; height: 22px; fill: #c4c6d0; cursor: pointer; }
+    .profile-avatar { width: 32px; height: 32px; border-radius: 50%; background-color: #4a5568; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; }
+
+    /* 主体内容区 */
+    .vmail-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* 侧边栏 (Sidebar) */
+    .vmail-sidebar {
+      width: 260px;
+      display: flex;
+      flex-direction: column;
+      padding-right: 16px;
+      background-color: #111318;
+      flex-shrink: 0;
+    }
+
+    .compose-btn {
+      background-color: #c2e7ff;
+      color: #001d35;
+      border: none;
+      border-radius: 16px;
+      height: 52px;
+      width: 142px;
+      margin: 16px 0 16px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+    .compose-btn svg { width: 20px; height: 20px; fill: #001d35; }
+
+    .nav-list { list-style: none; padding: 0; margin: 0; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      height: 34px;
+      padding-left: 24px;
+      margin-right: 8px;
+      border-radius: 0 17px 17px 0;
+      color: #e3e2e6;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .nav-item:hover { background-color: rgba(255,255,255,0.04); }
+    .nav-item.active { background-color: rgba(66, 133, 244, 0.12); color: #8ab4f8; font-weight: 500; }
+    .nav-item svg { width: 17px; height: 17px; fill: currentColor; margin-right: 16px; }
+    .nav-count { margin-left: auto; font-size: 12px; padding-right: 14px; }
+
+    /* 邮件主视图 */
+    .vmail-main-content {
+      flex: 1;
+      background-color: #111318;
+      border-radius: 14px;
+      margin-right: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 邮件操作栏 (固定顶部) */
+    .email-toolbar {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      flex-shrink: 0;
+    }
+    .toolbar-icons { display: flex; gap: 20px; align-items: center; }
+    .toolbar-icons svg { width: 19px; height: 19px; fill: #c4c6d0; cursor: pointer; }
+    
+    /* 邮件主体滚动区域 */
+    .email-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 40px 36px 40px;
+      -ms-overflow-style: none; 
+      scrollbar-width: none;  
+    }
+    .email-scroll-area::-webkit-scrollbar { 
+      display: none; 
+    }
+
+    .mail-subject-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      padding-left: 60px; 
+    }
+    .mail-subject-title {
+      font-size: 24px; font-weight: 500; display: flex; align-items: center; gap: 14px;
+    }
+    .label-group { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #c4c6d0; }
+    .tag-external { background-color: #6a4413; padding: 3px 7px; border-radius: 4px; color: #fff; font-weight: 500; }
+    .tag-inbox { background-color: #343538; padding: 3px 7px; border-radius: 4px; font-weight: 500; }
+    .mail-subject-icons svg { width: 19px; height: 19px; fill: #c4c6d0; margin-left: 16px; cursor: pointer; }
+
+    .sender-block {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 22px;
+    }
+    .sender-avatar {
+      width: 44px; height: 44px; border-radius: 50%; background-color: #4a5568; color: #fff;
+      display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 16px; margin-right: 16px; flex-shrink: 0;
+    }
+    .sender-info { flex: 1; display: flex; flex-direction: column; }
+    .sender-row-1 { display: flex; align-items: center; justify-content: space-between; margin-top: 3px;}
+    .sender-name-group { display: flex; align-items: center; gap: 10px; }
+    .sender-name { font-size: 16px; font-weight: 700; color: #e3e2e6; }
+    
+    .sender-time { font-size: 13px; color: #8e9099; display: flex; align-items: center; gap: 14px; }
+    .sender-time svg { width: 16px; height: 16px; fill: #c4c6d0; cursor: pointer; }
+    .recipient-line { font-size: 13px; color: #8e9099; margin-top: 4px; }
+
+    /* 正文 */
+    .email-body-text {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #e3e2e6;
+      padding-left: 60px; 
+      margin-bottom: 24px;
+      letter-spacing: 0.3px;
+    }
+
+    /* 附件展示区保持原有布局与照片尺寸 */
+    .vmail-attachments-wrapper {
+      padding-left: 60px; 
+      max-width: 980px;
+    }
+
+    .vmail-attachments-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      width: 100%;
+    }
+
+    .vmail-attachment-card {
+      background-color: #1a1c23;
+      border: 1px solid #2d3039;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      display: flex;
+      flex-direction: column;
+    }
+    .vmail-attachment-card:hover {
+      background-color: #23252e;
+      transform: translateY(-2px);
+    }
+
+    .vmail-card-image {
+      width: 100%;
+      height: 130px; 
+      background-color: #12141a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .vmail-card-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.95;
+    }
+    .vmail-card-footer {
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      background-color: #1a1c23;
+    }
+    .vmail-file-name {
+      font-size: 12px;
+      color: #c4c6d0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
+    }
+
+    /* 底部固定的回复按钮区 */
+    .reply-actions-fixed {
+      padding: 18px 40px 18px 100px;
+      display: flex;
+      gap: 14px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      background-color: #111318;
+      flex-shrink: 0;
+    }
+    
+    .reply-pill {
+      padding: 8px 24px;
+      background-color: transparent;
+      border: 1px solid #5f6368;
+      border-radius: 18px;
+      color: #e3e2e6;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .reply-pill svg { width: 16px; height: 16px; fill: #e3e2e6; }
+    .reply-pill:hover { background-color: rgba(255,255,255,0.04); }
+
+    /* 桌面端照片查看器 (Lightbox) */
+    .desktop-lightbox {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.9);
+      z-index: 500;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; transition: all 0.2s ease;
+    }
+    .desktop-lightbox.show { opacity: 1; visibility: visible; }
+    .lightbox-close { position: absolute; top: 20px; right: 30px; color: #fff; font-size: 28px; cursor: pointer; z-index: 510; }
+    .lightbox-content { position: relative; display: flex; align-items: center; justify-content: center; width: 90%; height: 90%; }
+    .lightbox-content img { max-width: 100%; max-height: 100%; object-fit: contain; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .nav-btn {
+      background: rgba(255,255,255,0.1); border: none; color: white; font-size: 40px; width: 60px; height: 60px; border-radius: 50%;
+      cursor: pointer; position: absolute; display: flex; align-items: center; justify-content: center; transition: background 0.2s;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,0.2); }
+    .nav-btn.prev { left: 20px; } .nav-btn.next { right: 20px; }
+
+    /* 特效：放大 Header 解析弹窗 */
+    .header-zoom-modal {
+      position: fixed;
+      top: 15%; right: 5%; 
+      width: 460px;
+      background-color: rgba(13, 15, 20, 0.95);
+      border: 1px solid #38bdf8;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+      border-radius: 8px;
+      padding: 18px;
+      font-family: "SF Mono", Consolas, monospace;
+      font-size: 13px;
+      z-index: 1000;
+      display: none;
+      backdrop-filter: blur(5px);
+    }
+    .hz-title { color: #38bdf8; font-weight: bold; font-size: 14px; margin-bottom: 12px; border-bottom: 1px dashed #232733; padding-bottom: 6px; display: flex; justify-content: space-between; }
+    .hz-line { padding: 5px 6px; margin-bottom: 4px; border-radius: 4px; color: #64748b; transition: all 0.2s ease; word-break: break-all; }
+    .hz-line.active-hop { background-color: rgba(56, 189, 248, 0.15); color: #38bdf8; border-left: 3px solid #38bdf8; }
+    .hz-line.target-hop { background-color: rgba(250, 204, 21, 0.2); color: #facc15; font-weight: bold; border-left: 3px solid #facc15; }
+
+    /* 底部隐形命令唤起条 */
+    .mail-cli-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background-color: rgba(11, 13, 18, 0.95);
+      border-top: 1px solid #232733;
+      padding: 12px 28px;
+      font-family: "SF Mono", Consolas, monospace;
+      font-size: 14px; color: #38bdf8;
+      display: none; align-items: center; gap: 10px; z-index: 50;
+    }
+
+    /* 真实终端 Console 视图样式 */
+    .terminal-window {
+      width: 100%; height: 100vh;
+      background-color: #0b0d12;
+      padding: 24px 32px;
+      font-family: "SF Mono", Monaco, Consolas, "Courier New", monospace;
+      font-size: 13px; line-height: 1.6; color: #c9d1d9; overflow-y: auto;
+    }
+    .t-prompt { color: #38bdf8; font-weight: 600; }
+    .t-cmd { color: #ffffff; font-weight: 600; }
+    .t-green { color: #4ade80; }
+    .t-yellow { color: #facc15; }
+    .t-cyan { color: #38bdf8; }
+    .t-dim { color: #525866; }
+    .t-white { color: #f8fafc; }
+    .cursor { display: inline-block; width: 8px; height: 16px; background: #38bdf8; vertical-align: middle; margin-left: 4px; animation: blink 0.9s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  </style>
+</head>
+<body>
+
+  <div class="invisible-reset-trigger" onclick="resetAll()" title="Reset"></div>
+
+  <div class="view-pane active" id="pane-mail">
+    <div class="vmail-app">
+      
+      <!-- 顶部 Header：已修改为 V-Mail -->
+      <header class="vmail-header">
+        <div class="header-left">
+          <svg class="menu-icon" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+          <div class="vmail-logo">
+            <svg class="vmail-logo-icon" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+            V-Mail
+          </div>
+        </div>
+        <div class="header-middle">
+          <div class="search-bar">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text" placeholder="Search mail">
+          </div>
+        </div>
+        <div class="header-right">
+          <svg viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>
+          <div class="profile-avatar">W</div>
+        </div>
+      </header>
+
+      <!-- 主体内容 -->
+      <div class="vmail-body">
+        
+        <!-- 左侧菜单 Sidebar -->
+        <aside class="vmail-sidebar">
+          <button class="compose-btn">
+            <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+            Compose
+          </button>
+          <ul class="nav-list">
+            <li class="nav-item active">
+              <svg viewBox="0 0 24 24"><path d="M19 3H4.99c-1.11 0-1.98.89-1.98 2L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10z"/></svg>
+              Inbox <span class="nav-count">1</span>
+            </li>
+            <li class="nav-item">
+              <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              Starred
+            </li>
+            <li class="nav-item">
+              <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+              Snoozed
+            </li>
+            <li class="nav-item">
+              <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+              Sent
+            </li>
+            <li class="nav-item">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+              Drafts <span class="nav-count">14</span>
+            </li>
+            <li class="nav-item">
+              <svg viewBox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3zm5 15h-2v-6H9v6H7v-7.81l5-4.5 5 4.5V18z"/><path d="M7 10.19V18h2v-6h6v6h2v-7.81l-5-4.5z" opacity=".3"/></svg>
+              Categories
+            </li>
+          </ul>
+        </aside>
+
+        <!-- 邮件主视图 -->
+        <main class="vmail-main-content">
+          <!-- 顶部 Toolbar (固定) -->
+          <div class="email-toolbar">
+            <div class="toolbar-icons">
+              <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM6.24 5h11.52l.83 1H5.41l.83-1zM19 19H5V8h14v11zm-2-6h-3.32l-1.18 1.18c-.28.28-.73.28-1 0L10.32 13H7c-.55 0-1 .45-1 1v2c0 .55.45 1 1h10c.55 0 1-.45 1-1v-2c0-.55-.45-1-1-1z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M22 4H2.01L2 20h20V4zm-2 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+            </div>
+          </div>
+
+          <!-- 邮件主体滚动区域 -->
+          <div class="email-scroll-area">
+            
+            <div class="mail-subject-line">
+              <div class="mail-subject-title">
+                (no subject)
+                <div class="label-group">
+                  <span class="tag-external">External</span>
+                  <span>›</span>
+                  <span class="tag-inbox">Inbox</span>
+                </div>
+              </div>
+              <div class="mail-subject-icons">
+                <svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+              </div>
+            </div>
+
+            <!-- 发件人信息：移除日期与时间 -->
+            <div class="sender-block">
+              <div class="sender-avatar">?</div>
+              <div class="sender-info">
+                <div class="sender-row-1">
+                  <div class="sender-name-group">
+                    <span class="sender-name">x7f9a2k04</span>
+                  </div>
+                  <div class="sender-time">
+                    <svg viewBox="0 0 24 24"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg>
+                    <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.5-8.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-9 0c.83 0 1.5-.67 1.5-1.5S8.33 7 7.5 7s-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm6 4c1.84 0 3.32 1.25 3.86 3h-1.07c-.45-.98-1.53-1.67-2.79-1.67s-2.34.69-2.79 1.67H7.14c.54-1.75 2.02-3 3.86-3z"/></svg>
+                    <svg viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
+                    <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                  </div>
+                </div>
+                <div class="recipient-line">to me ▾</div>
+              </div>
+            </div>
+
+            <!-- 正文 -->
+            <div class="email-body-text">
+              杀关镇邦者，叶承峰。
+            </div>
+
+            <!-- 附件网格区（照片尺寸与排布保持不变） -->
+            <div class="vmail-attachments-wrapper">
+              <div class="vmail-attachments-grid">
+                <div class="vmail-attachment-card" onclick="openDesktopPhoto(0)">
+                  <div class="vmail-card-image"><img src="https://cdn.phototourl.com/member/2026-10-17-ca33f3d4-2531-48be-b47e-2ee7c0e94a7b.jpg" alt="IMG_1"></div>
+                  <div class="vmail-card-footer"><span class="vmail-file-name">IMG_9281.JPG</span></div>
+                </div>
+                <div class="vmail-attachment-card" onclick="openDesktopPhoto(1)">
+                  <div class="vmail-card-image"><img src="https://cdn.phototourl.com/member/2026-10-17-3baeba7c-4c1a-4d7d-b40d-f280bb04f74c.jpg" alt="IMG_2"></div>
+                  <div class="vmail-card-footer"><span class="vmail-file-name">IMG_9282.JPG</span></div>
+                </div>
+                <div class="vmail-attachment-card" onclick="openDesktopPhoto(2)">
+                  <div class="vmail-card-image"><img src="https://cdn.phototourl.com/member/2026-10-17-1bcf7698-fa42-4a12-9eaa-db3b2cfa1569.jpg" alt="IMG_3"></div>
+                  <div class="vmail-card-footer"><span class="vmail-file-name">IMG_9283.JPG</span></div>
+                </div>
+                <div class="vmail-attachment-card" onclick="openDesktopPhoto(3)">
+                  <div class="vmail-card-image"><img src="https://cdn.phototourl.com/member/2026-10-17-65cb7c1a-3e88-438e-947b-c46e426bb934.jpg" alt="IMG_4"></div>
+                  <div class="vmail-card-footer"><span class="vmail-file-name">IMG_9284.JPG</span></div>
+                </div>
+              </div>
+            </div>
+            
+          </div>
+          
+          <!-- 底部固定的回复按钮 -->
+          <div class="reply-actions-fixed">
+            <button class="reply-pill">
+              <svg viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
+              Reply
+            </button>
+            <button class="reply-pill">
+              <svg viewBox="0 0 24 24"><path d="M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z"/></svg>
+              Forward
+            </button>
+          </div>
+          
+        </main>
+      </div>
+
+      <!-- 特效：邮件 Header 逐层解析弹窗 -->
+      <div class="header-zoom-modal" id="headerZoomModal">
+        <div class="hz-title">
+          <span>RAW RFC822 HEADER VECTOR INSPECTOR</span>
+          <span style="color:#4ade80;">[PARSING STACK]</span>
+        </div>
+        <div class="hz-line" id="hz-hop3">
+          [HOP 3 - MX INGRESS] Received: by mx.vmail.com [2002:a05:6214:240d] with SMTP
+        </div>
+        <div class="hz-line" id="hz-hop2">
+          [HOP 2 - PROXY RELAY] Received: from relay-node.nl-proxy.net [185.220.101.5]
+        </div>
+        <div class="hz-line" id="hz-hop1">
+          [HOP 1 - VPN TUNNEL] Received: from vpn-gate.sg-node.com [103.251.12.88]
+        </div>
+        <div class="hz-line" id="hz-hop0">
+          [HOP 0 - ORIGIN TARGET] Received: from gw.subnet-node.net [118.143.88.29] ◄ LOCKED
+        </div>
+      </div>
+
+      <!-- 底部抓包命令条 -->
+      <div class="mail-cli-overlay" id="mailCliOverlay">
+        <span class="t-prompt">analyst@ws:~$</span>
+        <span class="t-cmd" id="mail-input-buffer"></span><span class="cursor"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 视图 2：真实终端 console -->
+  <div class="view-pane" id="pane-terminal">
+    <div class="terminal-window" id="term-body">
+      <div id="term-logs"></div>
+      <div id="term-interactive-line" style="margin-top: 12px; display: none;">
+        <span class="t-prompt">analyst@ws:~$</span> 
+        <span class="t-cmd" id="active-cmd-buffer"></span><span class="cursor"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 桌面端全屏照片灯箱 Lightbox -->
+  <div class="desktop-lightbox" id="desktopLightbox">
+    <div class="lightbox-close" onclick="closeDesktopPhoto()">✕</div>
+    <div class="lightbox-content">
+      <button class="nav-btn prev" onclick="changePhoto(-1, event)">‹</button>
+      <img id="lightboxImg" src="" alt="View" />
+      <button class="nav-btn next" onclick="changePhoto(1, event)">›</button>
+    </div>
+  </div>
+
+  <script>
+    // ================= 桌面端附件灯箱逻辑 =================
+    const attachmentPhotos = [
+      "https://cdn.phototourl.com/member/2026-10-17-ca33f3d4-2531-48be-b47e-2ee7c0e94a7b.jpg",
+      "https://cdn.phototourl.com/member/2026-10-17-3baeba7c-4c1a-4d7d-b40d-f280bb04f74c.jpg",
+      "https://cdn.phototourl.com/member/2026-10-17-1bcf7698-fa42-4a12-9eaa-db3b2cfa1569.jpg",
+      "https://cdn.phototourl.com/member/2026-10-17-65cb7c1a-3e88-438e-947b-c46e426bb934.jpg"
+    ];
+    let currentPhotoIdx = 0;
+
+    function openDesktopPhoto(index) {
+      currentPhotoIdx = index;
+      document.getElementById('lightboxImg').src = attachmentPhotos[currentPhotoIdx];
+      document.getElementById('desktopLightbox').classList.add('show');
+    }
+
+    function closeDesktopPhoto() {
+      document.getElementById('desktopLightbox').classList.remove('show');
+    }
+
+    function changePhoto(dir, event) {
+      event.stopPropagation();
+      currentPhotoIdx += dir;
+      if (currentPhotoIdx < 0) currentPhotoIdx = attachmentPhotos.length - 1;
+      if (currentPhotoIdx >= attachmentPhotos.length) currentPhotoIdx = 0;
+      document.getElementById('lightboxImg').src = attachmentPhotos[currentPhotoIdx];
+    }
+
+    // ================= 键盘剧情特效逻辑 =================
+    let stage = 1;
+    const cmd1_text = "python3 -m forensics.eml_extract --raw-stream msg_318.eml";
+    let cmd1_idx = 0;
+    const cmd2_text = "whois 118.143.88.29";
+    let cmd2_idx = 0;
+
+    document.addEventListener('keydown', function(e) {
+      if (document.getElementById('desktopLightbox').classList.contains('show')) {
+         if(e.key === 'ArrowLeft') changePhoto(-1, e);
+         if(e.key === 'ArrowRight') changePhoto(1, e);
+         if(e.key === 'Escape') closeDesktopPhoto();
+         return; 
+      }
+      if (['Control', 'Shift', 'Alt', 'Meta', 'CapsLock', 'Tab'].includes(e.key)) return;
+      if (e.key === 'Escape') { resetAll(); return; }
+      if (e.key === 'Enter') { handleEnterKey(); } else { handleTypingKey(); }
+    });
+
+    function handleTypingKey() {
+      if (stage === 1) {
+        document.getElementById('mailCliOverlay').style.display = 'flex';
+        document.getElementById('headerZoomModal').style.display = 'block';
+
+        if (cmd1_idx < cmd1_text.length) {
+          cmd1_idx += 4;
+          if (cmd1_idx > cmd1_text.length) cmd1_idx = cmd1_text.length;
+          document.getElementById('mail-input-buffer').innerText = cmd1_text.substring(0, cmd1_idx);
+
+          if (cmd1_idx > 10) document.getElementById('hz-hop3').classList.add('active-hop');
+          if (cmd1_idx > 25) document.getElementById('hz-hop2').classList.add('active-hop');
+          if (cmd1_idx > 40) document.getElementById('hz-hop1').classList.add('active-hop');
+          if (cmd1_idx >= cmd1_text.length - 2) {
+            document.getElementById('hz-hop0').classList.add('target-hop');
+          }
+        }
+      } 
+      else if (stage === 2) {
+        if (cmd2_idx < cmd2_text.length) {
+          cmd2_idx += 1; 
+          if (cmd2_idx > cmd2_text.length) cmd2_idx = cmd2_text.length;
+          document.getElementById('active-cmd-buffer').innerText = cmd2_text.substring(0, cmd2_idx);
+        }
+      }
+    }
+
+    function handleEnterKey() {
+      if (stage === 1) {
+        document.getElementById('mail-input-buffer').innerText = cmd1_text;
+        document.getElementById('pane-mail').classList.remove('active');
+        document.getElementById('pane-terminal').classList.add('active');
+        runHeaderAnalysisLog();
+      } 
+      else if (stage === 2) {
+        document.getElementById('active-cmd-buffer').innerText = cmd2_text;
+        runWhoisQueryLog();
+      }
+    }
+
+    function runHeaderAnalysisLog() {
+      stage = 1.5;
+      const logsContainer = document.getElementById('term-logs');
+
+      const logLines = [
+        { html: `<span class="t-prompt">analyst@ws:~$</span> <span class="t-cmd">${cmd1_text}</span>` },
+        { text: "[+] Parsing stream (34,812 bytes)...", class: "t-dim" },
+        { text: "[+] Extracting Received header vector stack...", class: "t-dim" },
+        { text: "--------------------------------------------------------------------------------", class: "t-dim" },
+        { text: "[HOP 3 - INGRESS RECIPIENT MX]", class: "t-cyan" },
+        { text: "  Received: by 2002:a05:6214:240d with SMTP", class: "t-dim" },
+        { text: "  └─ Ingress Node : mx.vmail.com [2002:a05:6214:240d]", class: "t-dim" },
+        { text: "[HOP 2 - PROXY RELAY NODE]", class: "t-cyan" },
+        { text: "  Received: from relay-node.nl-proxy.net ([185.220.101.5]) by mx.vmail.com", class: "t-dim" },
+        { text: "  └─ Reverse DNS  : 185-220-101-5.nl-proxy.net | ASN: AS60729", class: "t-dim" },
+        { text: "[HOP 1 - VPN TUNNEL GATEWAY]", class: "t-cyan" },
+        { text: "  Received: from vpn-gate.sg-node.com ([103.251.12.88]) by relay-node.nl-proxy.net", class: "t-dim" },
+        { text: "  └─ Reverse DNS  : sg-gate-88.vpn-node.org | ASN: AS132203", class: "t-dim" },
+        { text: "[HOP 0 - FIRST-HOP ORIGIN CLIENT]", class: "t-yellow" },
+        { text: "  Received: from gw.subnet-node.net ([118.143.88.29]) by vpn-gate.sg-node.com", class: "t-white" },
+        { text: "  └─ Client IP    : 118.143.88.29 | Source Port: 49152 (TCP)", class: "t-yellow" },
+        { text: "--------------------------------------------------------------------------------", class: "t-dim" },
+        { text: "[!] HEADER TIMESTAMP & CLOCK SKEW CALCULATION:", class: "t-cyan" },
+        { text: "    MTA Time Delta       : +0.002s (In-sync)", class: "t-dim" },
+        { text: "    System Clock Skew    : +02:27:01 (User-Agent manipulation detected)", class: "t-yellow" },
+        { text: "[+] First-hop origin entry identified: 118.143.88.29", class: "t-green" }
+      ];
+
+      let idx = 0;
+      function printNext() {
+        if (idx < logLines.length) {
+          const item = logLines[idx];
+          const div = document.createElement('div');
+          if (item.html) { div.innerHTML = item.html; } else { if (item.class) div.className = item.class; div.innerText = item.text; }
+          logsContainer.appendChild(div);
+          scrollTerminal();
+          idx++;
+          setTimeout(printNext, 50);
+        } else {
+          stage = 2;
+          document.getElementById('active-cmd-buffer').innerText = "";
+          document.getElementById('term-interactive-line').style.display = 'block';
+          scrollTerminal();
+        }
+      }
+      printNext();
+    }
+
+    function runWhoisQueryLog() {
+      stage = 2.5;
+      const logsContainer = document.getElementById('term-logs');
+
+      const executedDiv = document.createElement('div');
+      executedDiv.style.marginTop = "12px";
+      executedDiv.innerHTML = `<span class="t-prompt">analyst@ws:~$</span> <span class="t-cmd">${cmd2_text}</span>`;
+      logsContainer.appendChild(executedDiv);
+      document.getElementById('term-interactive-line').style.display = 'none';
+
+      const whoisLogs = [
+        { text: "% Querying APNIC Regional Internet Registry for 118.143.88.29...", class: "t-dim" },
+        { text: "% WHOIS Server: whois.apnic.net", class: "t-dim" },
+        { text: "", class: "t-dim" },
+        { text: "inetnum:        118.143.88.0 - 118.143.88.255", class: "t-dim" },
+        { text: "descr:          Commercial Optical Lease Line Infrastructure", class: "t-dim" },
+        { text: "admin-c:        EC182-APNIC", class: "t-dim" },
+        { text: "tech-c:         EC182-APNIC", class: "t-dim" },
+        { text: "status:         ALLOCATED PORT-RACK", class: "t-dim" },
+        { text: "address:        Block 4, Industrial Zone, Sub-district 9", class: "t-yellow" },
+        { text: "coordinates:    22.2851 N, 114.1577 E", class: "t-green" },
+        { text: "source:         APNIC", class: "t-dim" },
+        { text: "", class: "t-dim" },
+        { text: "% Reverse DNS PTR Query [118.143.88.29]:", class: "t-dim" },
+        { text: "ptr-record:     gw.subnet-88-29.net", class: "t-dim" },
+        { text: "route-path:     AS17816 -> Line Drop #HK-EAST-0918-B", class: "t-dim" }
+      ];
+
+      let idx = 0;
+      function printNextWhois() {
+        if (idx < whoisLogs.length) {
+          const item = whoisLogs[idx];
+          const div = document.createElement('div');
+          if (item.class) div.className = item.class; div.innerText = item.text;
+          logsContainer.appendChild(div);
+          scrollTerminal();
+          idx++;
+          setTimeout(printNextWhois, 60);
+        } else {
+          stage = 3;
+          const finalPrompt = document.createElement('div');
+          finalPrompt.style.marginTop = "12px";
+          finalPrompt.innerHTML = `<span class="t-prompt">analyst@ws:~$</span> <span class="cursor"></span>`;
+          logsContainer.appendChild(finalPrompt);
+          scrollTerminal();
+        }
+      }
+      printNextWhois();
+    }
+
+    function scrollTerminal() {
+      const term = document.getElementById('term-body');
+      term.scrollTop = term.scrollHeight;
+    }
+
+    function resetAll() {
+      stage = 1;
+      cmd1_idx = 0;
+      cmd2_idx = 0;
+      document.getElementById('headerZoomModal').style.display = 'none';
+      document.getElementById('hz-hop3').className = 'hz-line';
+      document.getElementById('hz-hop2').className = 'hz-line';
+      document.getElementById('hz-hop1').className = 'hz-line';
+      document.getElementById('hz-hop0').className = 'hz-line';
+      document.getElementById('mailCliOverlay').style.display = 'none';
+      document.getElementById('mail-input-buffer').innerText = "";
+      document.getElementById('active-cmd-buffer').innerText = "";
+      document.getElementById('term-logs').innerHTML = "";
+      document.getElementById('pane-terminal').classList.remove('active');
+      document.getElementById('pane-mail').classList.add('active');
+      document.getElementById('term-interactive-line').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
